@@ -16,7 +16,9 @@ export default function ComprasPage() {
   const [purchaseDate, setPurchaseDate] = useState(getToday())
   const [item, setItem] = useState('')
   const [quantity, setQuantity] = useState('')
-  const [unit, setUnit] = useState('unidad')
+  const [unit, setUnit] = useState('')
+  const [unitSize, setUnitSize] = useState('')
+  const [unitSizeLabel, setUnitSizeLabel] = useState('')
   const [unitCost, setUnitCost] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [notes, setNotes] = useState('')
@@ -54,6 +56,8 @@ export default function ComprasPage() {
       item: item,
       quantity: quantity ? parseFloat(quantity) : null,
       unit: unit || null,
+      unit_size: unitSize ? parseFloat(unitSize) : null,
+      unit_size_label: unitSizeLabel || null,
       unit_cost: unitCost ? parseFloat(unitCost) : null,
       category_id: categoryId || null,
       notes: notes || null,
@@ -62,6 +66,9 @@ export default function ComprasPage() {
     if (!error) {
       setItem('')
       setQuantity('')
+      setUnit('')
+      setUnitSize('')
+      setUnitSizeLabel('')
       setUnitCost('')
       setNotes('')
       loadData()
@@ -85,6 +92,24 @@ export default function ComprasPage() {
     (sum, p) => sum + (p.total_cost || 0),
     0
   )
+
+  // Computed total quantity
+  const computedTotal =
+    quantity && unitSize
+      ? parseFloat(quantity) * parseFloat(unitSize)
+      : null
+
+  function formatPurchaseDetail(p: Purchase): string {
+    const parts: string[] = []
+    if (p.quantity && p.unit) {
+      parts.push(`${p.quantity} ${p.unit}`)
+      if (p.unit_size) {
+        const label = p.unit_size_label || 'unidades'
+        parts.push(`(${p.unit_size} ${label} c/u)`)
+      }
+    }
+    return parts.join(' ')
+  }
 
   if (loading) {
     return (
@@ -128,6 +153,7 @@ export default function ComprasPage() {
           />
         </div>
 
+        {/* Row: Cantidad, Unidad, Costo Unit. */}
         <div className="grid grid-cols-3 gap-2">
           <div>
             <label className="block text-sm font-medium text-bakery-600 mb-1">
@@ -147,19 +173,13 @@ export default function ComprasPage() {
             <label className="block text-sm font-medium text-bakery-600 mb-1">
               Unidad
             </label>
-            <select
+            <input
+              type="text"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
+              placeholder="saco, jaba, caja..."
               className="input-field"
-            >
-              <option value="unidad">Unidad</option>
-              <option value="kg">Kg</option>
-              <option value="g">g</option>
-              <option value="litro">Litro</option>
-              <option value="ml">ml</option>
-              <option value="paquete">Paquete</option>
-              <option value="docena">Docena</option>
-            </select>
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-bakery-600 mb-1">
@@ -177,15 +197,53 @@ export default function ComprasPage() {
           </div>
         </div>
 
+        {/* Row: Contenido por unidad + medida */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-sm font-medium text-bakery-600 mb-1">
+              Contenido por unidad
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={unitSize}
+              onChange={(e) => setUnitSize(e.target.value)}
+              className="input-field"
+              placeholder="50, 30..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-bakery-600 mb-1">
+              Medida
+            </label>
+            <input
+              type="text"
+              value={unitSizeLabel}
+              onChange={(e) => setUnitSizeLabel(e.target.value)}
+              placeholder="kg, unidades, litros..."
+              className="input-field"
+            />
+          </div>
+        </div>
+
         {/* Total preview */}
         {quantity && unitCost && (
-          <div className="text-center py-2 bg-bakery-50 rounded-xl">
-            <span className="text-sm text-bakery-500">Costo total: </span>
-            <span className="text-xl font-bold text-chocolate">
-              {formatCurrency(
-                parseFloat(quantity || '0') * parseFloat(unitCost || '0')
-              )}
-            </span>
+          <div className="text-center py-2 bg-bakery-50 rounded-xl space-y-1">
+            <div>
+              <span className="text-sm text-bakery-500">Costo total: </span>
+              <span className="text-xl font-bold text-chocolate">
+                {formatCurrency(
+                  parseFloat(quantity || '0') * parseFloat(unitCost || '0')
+                )}
+              </span>
+            </div>
+            {computedTotal && unitSizeLabel && (
+              <p className="text-xs text-bakery-400">
+                {quantity} {unit || 'unidad(es)'} x {unitSize} {unitSizeLabel} ={' '}
+                {computedTotal} {unitSizeLabel} totales
+              </p>
+            )}
           </div>
         )}
 
@@ -276,10 +334,10 @@ export default function ComprasPage() {
                 <div>
                   <p className="font-medium text-chocolate">{purchase.item}</p>
                   <p className="text-sm text-bakery-400">
-                    {purchase.quantity && purchase.unit
-                      ? `${purchase.quantity} ${purchase.unit}`
+                    {formatPurchaseDetail(purchase)}
+                    {purchase.unit_cost
+                      ? `${formatPurchaseDetail(purchase) ? ' — ' : ''}S/ ${purchase.unit_cost}`
                       : ''}
-                    {purchase.unit_cost ? ` x S/ ${purchase.unit_cost}` : ''}
                     {purchase.categories?.name ? ` · ${purchase.categories.name}` : ''}
                   </p>
                   <p className="text-xs text-bakery-300">

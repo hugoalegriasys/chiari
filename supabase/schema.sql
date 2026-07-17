@@ -51,6 +51,8 @@ create table purchases (
   item text not null,
   quantity numeric(10,2),
   unit text,
+  unit_size numeric(10,2),
+  unit_size_label text,
   unit_cost numeric(10,2),
   total_cost numeric(10,2) generated always as (quantity * unit_cost) stored,
   category_id uuid references categories(id),

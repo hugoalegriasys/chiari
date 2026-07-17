@@ -1,4 +1,4 @@
--- MIGRATION: Variantes + tamano + produccion por variante + stock
+-- MIGRATION: Variantes + tamano + produccion por variante + stock + compras detalladas
 -- Ejecutar esto si ya tienes datos en las tablas
 
 -- 1. Crear tabla de variantes (si no existe)
@@ -130,3 +130,20 @@ left join produced_portions pp on pp.product_id = p.id and pp.variant_id = v.id
 left join sold_whole sw on sw.product_id = p.id and sw.variant_id = v.id
 left join sold_portions sp on sp.product_id = p.id
 where p.active = true and v.active = true;
+
+-- 9. Agregar unit_size y unit_size_label a purchases
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'purchases' and column_name = 'unit_size'
+  ) then
+    alter table purchases add column unit_size numeric(10,2);
+  end if;
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'purchases' and column_name = 'unit_size_label'
+  ) then
+    alter table purchases add column unit_size_label text;
+  end if;
+end $$;

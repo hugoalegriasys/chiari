@@ -41,6 +41,8 @@ export interface Purchase {
   item: string
   quantity: number | null
   unit: string | null
+  unit_size: number | null
+  unit_size_label: string | null
   unit_cost: number | null
   total_cost: number | null
   category_id: string | null
