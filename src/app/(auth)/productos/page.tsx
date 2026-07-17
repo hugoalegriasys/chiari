@@ -465,7 +465,14 @@ export default function ProductosPage() {
                           </div>
                         ) : (
                           <>
-                            <span className="text-sm text-chocolate">{v.name}</span>
+                            <span className="text-sm text-chocolate">
+                              {v.name}
+                              {v.size && (
+                                <span className="text-xs text-bakery-400 ml-1">
+                                  · Talla: {v.size === 'grande' ? 'Grande' : 'Pequena'}
+                                </span>
+                              )}
+                            </span>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-chocolate">S/ {v.price}</span>
                               <button onClick={() => startEditVariant(v)} className="text-caramel text-xs">Editar</button>
