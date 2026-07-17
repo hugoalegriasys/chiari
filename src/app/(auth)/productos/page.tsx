@@ -170,8 +170,8 @@ export default function ProductosPage() {
   }
 
   async function deleteVariant(id: string) {
-    if (!confirm('Eliminar esta variante?')) return
-    await supabase.from('product_variants').delete().eq('id', id)
+    if (!confirm('Desactivar esta variante?')) return
+    await supabase.from('product_variants').update({ active: false }).eq('id', id)
     loadData()
   }
 
@@ -377,7 +377,7 @@ export default function ProductosPage() {
               const prodSched = schedules
                 .filter((s) => s.product_id === prod.id)
                 .map((s) => s.weekday)
-              const prodVariants = variants.filter((v) => v.product_id === prod.id)
+              const prodVariants = variants.filter((v) => v.product_id === prod.id && v.active)
               const isEditingNewVariant = editingVariant === `new:${prod.id}`
               return (
                 <div key={prod.id} className="card">
