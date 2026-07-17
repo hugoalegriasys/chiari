@@ -66,7 +66,7 @@ export default function ProduccionPage() {
 
   // Variants for selected product
   const productVariants = productId
-    ? variants.filter((v) => v.product_id === productId)
+    ? variants.filter((v) => v.product_id === productId && v.size)
     : []
 
   // When product changes, reset variant
