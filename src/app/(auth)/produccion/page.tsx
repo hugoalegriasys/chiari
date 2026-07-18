@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Product,
-  ProductVariant,
   ProductionBatch,
   WEEKDAY_NAMES,
   WEEKDAY_NAMES_FULL,
@@ -14,7 +13,6 @@ import { formatDisplayDate, getToday, getWeekday } from '@/lib/utils'
 export default function ProduccionPage() {
   const supabase = createClient()
   const [products, setProducts] = useState<Product[]>([])
-  const [variants, setVariants] = useState<ProductVariant[]>([])
   const [batches, setBatches] = useState<ProductionBatch[]>([])
   const [schedules, setSchedules] = useState<{ product_id: string; weekday: number }[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,7 +21,7 @@ export default function ProduccionPage() {
   // Form
   const [productionDate, setProductionDate] = useState(getToday())
   const [productId, setProductId] = useState('')
-  const [variantId, setVariantId] = useState('')
+  const [batchSize, setBatchSize] = useState<'grande' | 'pequena' | ''>('')
   const [quantityProduced, setQuantityProduced] = useState('')
   const [portionsCut, setPortionsCut] = useState('')
   const [notes, setNotes] = useState('')
@@ -36,42 +34,35 @@ export default function ProduccionPage() {
   }, [])
 
   async function loadData() {
-    const [prodsRes, varRes, batchesRes, schedRes] = await Promise.all([
-      supabase.from('products').select('*').eq('active', true).order('name'),
-      supabase.from('product_variants').select('*').eq('active', true).order('name'),
+    const [prodsRes, batchesRes, schedRes] = await Promise.all([
+      supabase.from('products').select('*, categories(name)').eq('active', true).order('name'),
       supabase
         .from('production_batches')
-        .select('*, products(name), product_variants(name, size)')
+        .select('*, products(name)')
         .order('production_date', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(100),
       supabase.from('product_schedule').select('product_id, weekday'),
     ])
     setProducts(prodsRes.data || [])
-    setVariants(varRes.data || [])
     setBatches(batchesRes.data || [])
     setSchedules(schedRes.data || [])
     setLoading(false)
   }
 
-  // Get products scheduled for the selected date
   const selectedWeekday = getWeekday(productionDate)
   const scheduledProducts = products.filter((p) =>
     schedules.some((s) => s.product_id === p.id && s.weekday === selectedWeekday)
   )
-
   const unscheduledProducts = products.filter(
     (p) => !scheduledProducts.some((sp) => sp.id === p.id)
   )
 
-  // Variants for selected product
-  const productVariants = productId
-    ? variants.filter((v) => v.product_id === productId && v.size)
-    : []
+  const selectedProduct = products.find((p) => p.id === productId)
+  const isTorta = selectedProduct?.categories?.name?.toLowerCase() === 'torta'
 
-  // When product changes, reset variant
   useEffect(() => {
-    setVariantId('')
+    setBatchSize('')
     setPortionsCut('')
   }, [productId])
 
@@ -83,7 +74,7 @@ export default function ProduccionPage() {
     const { error } = await supabase.from('production_batches').insert({
       production_date: productionDate,
       product_id: productId,
-      variant_id: variantId || null,
+      size: isTorta && batchSize ? batchSize : null,
       quantity_produced: parseInt(quantityProduced),
       portions_cut: portionsCut ? parseInt(portionsCut) : null,
       notes: notes || null,
@@ -91,7 +82,7 @@ export default function ProduccionPage() {
 
     if (!error) {
       setProductId('')
-      setVariantId('')
+      setBatchSize('')
       setQuantityProduced('')
       setPortionsCut('')
       setNotes('')
@@ -102,7 +93,7 @@ export default function ProduccionPage() {
 
   function quickAdd(product: Product) {
     setProductId(product.id)
-    setVariantId('')
+    setBatchSize('')
     setQuantityProduced('1')
     setPortionsCut('')
     setNotes('')
@@ -115,14 +106,6 @@ export default function ProduccionPage() {
   }
 
   const filteredBatches = batches.filter((b) => b.production_date === filterDate)
-
-  function formatVariantLabel(batch: ProductionBatch): string {
-    const v = batch.product_variants
-    if (!v) return ''
-    let label = v.name
-    if (v.size) label += ` (${v.size})`
-    return label
-  }
 
   if (loading) {
     return (
@@ -211,28 +194,35 @@ export default function ProduccionPage() {
           </select>
         </div>
 
-        {/* Variant / size selector */}
-        {productVariants.length > 0 && (
+        {/* Size selector - only for Torta category */}
+        {isTorta && (
           <div>
-            <label className="block text-sm font-medium text-bakery-600 mb-1">
-              Variante / tamano
+            <label className="block text-sm font-medium text-bakery-600 mb-2">
+              Tamano
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {productVariants.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setVariantId(v.id)}
-                  className={`py-3 rounded-xl font-medium text-sm transition-all border-2 ${
-                    variantId === v.id
-                      ? 'bg-caramel text-white border-caramel'
-                      : 'bg-white text-chocolate border-bakery-200'
-                  }`}
-                >
-                  {v.name}
-                  {v.size ? ` (${v.size})` : ''}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => setBatchSize('grande')}
+                className={`py-3 rounded-xl font-bold text-lg transition-all border-2 ${
+                  batchSize === 'grande'
+                    ? 'bg-caramel text-white border-caramel'
+                    : 'bg-white text-chocolate border-bakery-200'
+                }`}
+              >
+                Grande
+              </button>
+              <button
+                type="button"
+                onClick={() => setBatchSize('pequena')}
+                className={`py-3 rounded-xl font-bold text-lg transition-all border-2 ${
+                  batchSize === 'pequena'
+                    ? 'bg-caramel text-white border-caramel'
+                    : 'bg-white text-chocolate border-bakery-200'
+                }`}
+              >
+                Pequena
+              </button>
             </div>
           </div>
         )}
@@ -314,7 +304,7 @@ export default function ProduccionPage() {
                 <p className="font-medium text-chocolate">{batch.products?.name}</p>
                 <p className="text-sm text-bakery-400">
                   {batch.quantity_produced} unidades
-                  {batch.product_variants && ` · ${formatVariantLabel(batch)}`}
+                  {batch.size && ` · ${batch.size === 'grande' ? 'Grande' : 'Pequena'}`}
                   {batch.portions_cut && ` · ${batch.portions_cut} porciones`}
                   {batch.notes ? ` · ${batch.notes}` : ''}
                 </p>

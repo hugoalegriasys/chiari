@@ -27,7 +27,6 @@ create table product_variants (
   product_id uuid references products(id) on delete cascade,
   name text not null,                  -- 'Entero', 'Medio', 'Porcion'
   price numeric(10,2) not null,
-  size text check (size in ('grande', 'pequena', null)),
   active boolean default true,
   created_at timestamptz default now()
 );
@@ -51,10 +50,8 @@ create table purchases (
   item text not null,
   quantity numeric(10,2),
   unit text,
-  unit_size numeric(10,2),
-  unit_size_label text,
   unit_cost numeric(10,2),
-  total_cost numeric(10,2) generated always as (quantity * unit_cost) stored,
+  total_cost numeric(10,2),
   category_id uuid references categories(id),
   notes text,
   created_at timestamptz default now()
@@ -68,6 +65,7 @@ create table production_batches (
   production_date date not null default current_date,
   product_id uuid references products(id),
   variant_id uuid references product_variants(id),
+  size text check (size in ('grande', 'pequena')),
   quantity_produced int not null,
   portions_cut int,
   notes text,
@@ -161,16 +159,16 @@ order by week_start desc, product_name, variant_name;
 
 create view product_stock as
 with produced_whole as (
-  select product_id, variant_id, sum(quantity_produced) as unidades_producidas
+  select product_id, size, sum(quantity_produced) as unidades_producidas
   from production_batches
   where portions_cut is null
-  group by product_id, variant_id
+  group by product_id, size
 ),
 produced_portions as (
-  select product_id, variant_id, sum(portions_cut) as porciones_producidas
+  select product_id, size, sum(portions_cut) as porciones_producidas
   from production_batches
   where portions_cut is not null
-  group by product_id, variant_id
+  group by product_id, size
 ),
 sold_whole as (
   select s.product_id, s.variant_id, sum(s.quantity) as unidades_vendidas
@@ -189,18 +187,21 @@ sold_portions as (
 select
   p.id as product_id,
   p.name as product_name,
-  v.id as variant_id,
-  v.name as variant_name,
-  v.size,
-  coalesce(pw.unidades_producidas, 0) - coalesce(sw.unidades_vendidas, 0) as stock_unidades_enteras,
+  pw.size,
+  coalesce(pw.unidades_producidas, 0) as unidades_producidas,
+  coalesce(sw.total_vendidas, 0) as unidades_vendidas,
+  coalesce(pw.unidades_producidas, 0) - coalesce(sw.total_vendidas, 0) as stock_unidades_enteras,
   coalesce(pp.porciones_producidas, 0) - coalesce(sp.porciones_vendidas, 0) as stock_porciones
 from products p
-join product_variants v on v.product_id = p.id
-left join produced_whole pw on pw.product_id = p.id and pw.variant_id = v.id
-left join produced_portions pp on pp.product_id = p.id and pp.variant_id = v.id
-left join sold_whole sw on sw.product_id = p.id and sw.variant_id = v.id
+left join produced_whole pw on pw.product_id = p.id
+left join produced_portions pp on pp.product_id = p.id and pp.size = pw.size
+left join (
+  select product_id, sum(unidades_vendidas) as total_vendidas
+  from sold_whole
+  group by product_id
+) sw on sw.product_id = p.id
 left join sold_portions sp on sp.product_id = p.id
-where p.active = true and v.active = true;
+where p.active = true;
 
 -- ==========================================
 -- RLS (Row Level Security) - auth required

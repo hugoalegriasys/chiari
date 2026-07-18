@@ -30,7 +30,6 @@ export interface ProductVariant {
   product_id: string
   name: string
   price: number
-  size: 'grande' | 'pequena' | null
   active: boolean
   created_at: string
 }
@@ -41,8 +40,6 @@ export interface Purchase {
   item: string
   quantity: number | null
   unit: string | null
-  unit_size: number | null
-  unit_size_label: string | null
   unit_cost: number | null
   total_cost: number | null
   category_id: string | null
@@ -56,6 +53,7 @@ export interface ProductionBatch {
   production_date: string
   product_id: string
   variant_id: string | null
+  size: 'grande' | 'pequena' | null
   quantity_produced: number
   portions_cut: number | null
   notes: string | null
@@ -125,9 +123,9 @@ export interface WeeklySalesByVariant {
 export interface ProductStock {
   product_id: string
   product_name: string
-  variant_id: string
-  variant_name: string
   size: 'grande' | 'pequena' | null
+  unidades_producidas: number
+  unidades_vendidas: number
   stock_unidades_enteras: number
   stock_porciones: number
 }

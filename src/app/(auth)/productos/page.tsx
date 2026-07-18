@@ -28,7 +28,6 @@ export default function ProductosPage() {
   const [editingVariant, setEditingVariant] = useState<string | null>(null)
   const [variantName, setVariantName] = useState('')
   const [variantPrice, setVariantPrice] = useState('')
-  const [variantSize, setVariantSize] = useState('')
 
   useEffect(() => {
     loadData()
@@ -143,21 +142,18 @@ export default function ProductosPage() {
     setEditingVariant(`new:${productId}`)
     setVariantName('')
     setVariantPrice('')
-    setVariantSize('')
   }
 
   function startEditVariant(variant: ProductVariant) {
     setEditingVariant(variant.id)
     setVariantName(variant.name)
     setVariantPrice(variant.price.toString())
-    setVariantSize(variant.size || '')
   }
 
   function cancelVariantForm() {
     setEditingVariant(null)
     setVariantName('')
     setVariantPrice('')
-    setVariantSize('')
   }
 
   async function saveVariant(productId: string) {
@@ -166,7 +162,6 @@ export default function ProductosPage() {
       product_id: productId,
       name: variantName,
       price: parseFloat(variantPrice),
-      size: variantSize || null,
     }
 
     if (editingVariant && !editingVariant.startsWith('new:')) {
@@ -430,49 +425,29 @@ export default function ProductosPage() {
                     {prodVariants.map((v) => (
                       <div key={v.id} className="flex items-center justify-between">
                         {editingVariant === v.id ? (
-                          <div className="flex flex-col gap-2 flex-1">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={variantName}
-                                onChange={(e) => setVariantName(e.target.value)}
-                                className="flex-1 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
-                                placeholder="Nombre"
-                              />
-                              <input
-                                type="number"
-                                step="0.50"
-                                min="0"
-                                value={variantPrice}
-                                onChange={(e) => setVariantPrice(e.target.value)}
-                                className="w-20 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
-                                placeholder="S/"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <select
-                                value={variantSize}
-                                onChange={(e) => setVariantSize(e.target.value)}
-                                className="flex-1 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
-                              >
-                                <option value="">Ninguno</option>
-                                <option value="grande">Grande</option>
-                                <option value="pequena">Pequena</option>
-                              </select>
-                              <button onClick={() => saveVariant(prod.id)} className="text-caramel text-xs font-bold">OK</button>
-                              <button onClick={cancelVariantForm} className="text-bakery-400 text-xs">X</button>
-                            </div>
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="text"
+                              value={variantName}
+                              onChange={(e) => setVariantName(e.target.value)}
+                              className="flex-1 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
+                              placeholder="Nombre"
+                            />
+                            <input
+                              type="number"
+                              step="0.50"
+                              min="0"
+                              value={variantPrice}
+                              onChange={(e) => setVariantPrice(e.target.value)}
+                              className="w-20 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
+                              placeholder="S/"
+                            />
+                            <button onClick={() => saveVariant(prod.id)} className="text-caramel text-xs font-bold">OK</button>
+                            <button onClick={cancelVariantForm} className="text-bakery-400 text-xs">X</button>
                           </div>
                         ) : (
                           <>
-                            <span className="text-sm text-chocolate">
-                              {v.name}
-                              {v.size && (
-                                <span className="text-xs text-bakery-400 ml-1">
-                                  · Talla: {v.size === 'grande' ? 'Grande' : 'Pequena'}
-                                </span>
-                              )}
-                            </span>
+                            <span className="text-sm text-chocolate">{v.name}</span>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-chocolate">S/ {v.price}</span>
                               <button onClick={() => startEditVariant(v)} className="text-caramel text-xs">Editar</button>
@@ -484,38 +459,25 @@ export default function ProductosPage() {
                     ))}
                     {/* Add variant form or button */}
                     {isEditingNewVariant ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={variantName}
-                            onChange={(e) => setVariantName(e.target.value)}
-                            className="flex-1 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
-                            placeholder="Nombre (ej: Entero, Medio)"
-                          />
-                          <input
-                            type="number"
-                            step="0.50"
-                            min="0"
-                            value={variantPrice}
-                            onChange={(e) => setVariantPrice(e.target.value)}
-                            className="w-20 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
-                            placeholder="S/"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={variantSize}
-                            onChange={(e) => setVariantSize(e.target.value)}
-                            className="flex-1 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
-                          >
-                            <option value="">Ninguno</option>
-                            <option value="grande">Grande</option>
-                            <option value="pequena">Pequena</option>
-                          </select>
-                          <button onClick={() => saveVariant(prod.id)} className="text-caramel text-xs font-bold">OK</button>
-                          <button onClick={cancelVariantForm} className="text-bakery-400 text-xs">X</button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={variantName}
+                          onChange={(e) => setVariantName(e.target.value)}
+                          className="flex-1 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
+                          placeholder="Nombre (ej: Entero, Medio)"
+                        />
+                        <input
+                          type="number"
+                          step="0.50"
+                          min="0"
+                          value={variantPrice}
+                          onChange={(e) => setVariantPrice(e.target.value)}
+                          className="w-20 px-2 py-1 text-sm border border-bakery-200 rounded-lg"
+                          placeholder="S/"
+                        />
+                        <button onClick={() => saveVariant(prod.id)} className="text-caramel text-xs font-bold">OK</button>
+                        <button onClick={cancelVariantForm} className="text-bakery-400 text-xs">X</button>
                       </div>
                     ) : (
                       <button

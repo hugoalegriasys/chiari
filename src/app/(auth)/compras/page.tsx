@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Category, Purchase } from '@/lib/types'
+import { Purchase } from '@/lib/types'
 import { formatCurrency, getToday, formatDisplayDate } from '@/lib/utils'
 
 export default function ComprasPage() {
   const supabase = createClient()
   const [purchases, setPurchases] = useState<Purchase[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -16,12 +15,7 @@ export default function ComprasPage() {
   const [purchaseDate, setPurchaseDate] = useState(getToday())
   const [item, setItem] = useState('')
   const [quantity, setQuantity] = useState('')
-  const [unit, setUnit] = useState('')
-  const [unitSize, setUnitSize] = useState('')
-  const [unitSizeLabel, setUnitSizeLabel] = useState('')
-  const [unitCost, setUnitCost] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [notes, setNotes] = useState('')
+  const [totalCost, setTotalCost] = useState('')
 
   // Filters
   const [filterFrom, setFilterFrom] = useState('')
@@ -32,45 +26,32 @@ export default function ComprasPage() {
   }, [])
 
   async function loadData() {
-    const [purchRes, catRes] = await Promise.all([
-      supabase
-        .from('purchases')
-        .select('*, categories(name)')
-        .order('purchase_date', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(100),
-      supabase.from('categories').select('*').order('name'),
-    ])
-    setPurchases(purchRes.data || [])
-    setCategories(catRes.data || [])
+    const { data } = await supabase
+      .from('purchases')
+      .select('*')
+      .order('purchase_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(100)
+    setPurchases(data || [])
     setLoading(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!item.trim()) return
+    if (!item.trim() || !totalCost) return
 
     setSaving(true)
     const { error } = await supabase.from('purchases').insert({
       purchase_date: purchaseDate,
       item: item,
       quantity: quantity ? parseFloat(quantity) : null,
-      unit: unit || null,
-      unit_size: unitSize ? parseFloat(unitSize) : null,
-      unit_size_label: unitSizeLabel || null,
-      unit_cost: unitCost ? parseFloat(unitCost) : null,
-      category_id: categoryId || null,
-      notes: notes || null,
+      total_cost: parseFloat(totalCost),
     })
 
     if (!error) {
       setItem('')
       setQuantity('')
-      setUnit('')
-      setUnitSize('')
-      setUnitSizeLabel('')
-      setUnitCost('')
-      setNotes('')
+      setTotalCost('')
       loadData()
     }
     setSaving(false)
@@ -92,24 +73,6 @@ export default function ComprasPage() {
     (sum, p) => sum + (p.total_cost || 0),
     0
   )
-
-  // Computed total quantity
-  const computedTotal =
-    quantity && unitSize
-      ? parseFloat(quantity) * parseFloat(unitSize)
-      : null
-
-  function formatPurchaseDetail(p: Purchase): string {
-    const parts: string[] = []
-    if (p.quantity && p.unit) {
-      parts.push(`${p.quantity} ${p.unit}`)
-      if (p.unit_size) {
-        const label = p.unit_size_label || 'unidades'
-        parts.push(`(${p.unit_size} ${label} c/u)`)
-      }
-    }
-    return parts.join(' ')
-  }
 
   if (loading) {
     return (
@@ -141,20 +104,19 @@ export default function ComprasPage() {
 
         <div>
           <label className="block text-sm font-medium text-bakery-600 mb-1">
-            Insumo / articulo
+            Insumo
           </label>
           <input
             type="text"
             value={item}
             onChange={(e) => setItem(e.target.value)}
-            placeholder="ej: Harina, Huevos, Envases..."
+            placeholder="ej: Harina, Huevos, Azucar..."
             className="input-field"
             required
           />
         </div>
 
-        {/* Row: Cantidad, Unidad, Costo Unit. */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-bakery-600 mb-1">
               Cantidad
@@ -166,116 +128,24 @@ export default function ComprasPage() {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               className="input-field"
-              placeholder="0"
+              placeholder="2"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-bakery-600 mb-1">
-              Unidad
-            </label>
-            <input
-              type="text"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              placeholder="saco, jaba, caja..."
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-bakery-600 mb-1">
-              Costo Unit. (S/)
+              Costo total (S/)
             </label>
             <input
               type="number"
               step="0.01"
               min="0"
-              value={unitCost}
-              onChange={(e) => setUnitCost(e.target.value)}
+              value={totalCost}
+              onChange={(e) => setTotalCost(e.target.value)}
               className="input-field"
-              placeholder="0.00"
+              placeholder="120.00"
+              required
             />
           </div>
-        </div>
-
-        {/* Row: Contenido por unidad + medida */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-sm font-medium text-bakery-600 mb-1">
-              Contenido por unidad
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={unitSize}
-              onChange={(e) => setUnitSize(e.target.value)}
-              className="input-field"
-              placeholder="50, 30..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-bakery-600 mb-1">
-              Medida
-            </label>
-            <input
-              type="text"
-              value={unitSizeLabel}
-              onChange={(e) => setUnitSizeLabel(e.target.value)}
-              placeholder="kg, unidades, litros..."
-              className="input-field"
-            />
-          </div>
-        </div>
-
-        {/* Total preview */}
-        {quantity && unitCost && (
-          <div className="text-center py-2 bg-bakery-50 rounded-xl space-y-1">
-            <div>
-              <span className="text-sm text-bakery-500">Costo total: </span>
-              <span className="text-xl font-bold text-chocolate">
-                {formatCurrency(
-                  parseFloat(quantity || '0') * parseFloat(unitCost || '0')
-                )}
-              </span>
-            </div>
-            {computedTotal && unitSizeLabel && (
-              <p className="text-xs text-bakery-400">
-                {quantity} {unit || 'unidad(es)'} x {unitSize} {unitSizeLabel} ={' '}
-                {computedTotal} {unitSizeLabel} totales
-              </p>
-            )}
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-bakery-600 mb-1">
-            Categoria (opcional)
-          </label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="input-field"
-          >
-            <option value="">Sin categoria</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-bakery-600 mb-1">
-            Notas (opcional)
-          </label>
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Algun detalle..."
-            className="input-field"
-          />
         </div>
 
         <button
@@ -334,15 +204,8 @@ export default function ComprasPage() {
                 <div>
                   <p className="font-medium text-chocolate">{purchase.item}</p>
                   <p className="text-sm text-bakery-400">
-                    {formatPurchaseDetail(purchase)}
-                    {purchase.unit_cost
-                      ? `${formatPurchaseDetail(purchase) ? ' — ' : ''}S/ ${purchase.unit_cost}`
-                      : ''}
-                    {purchase.categories?.name ? ` · ${purchase.categories.name}` : ''}
-                  </p>
-                  <p className="text-xs text-bakery-300">
+                    {purchase.quantity ? `${purchase.quantity} — ` : ''}
                     {formatDisplayDate(purchase.purchase_date)}
-                    {purchase.notes ? ` · ${purchase.notes}` : ''}
                   </p>
                 </div>
                 <div className="text-right flex items-start gap-3">

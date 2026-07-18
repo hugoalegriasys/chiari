@@ -306,13 +306,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stock by variant */}
+      {/* Stock by product */}
       {productStock.length > 0 && (
         <div className="space-y-2">
-          <h3 className="font-semibold text-chocolate">Stock por variante</h3>
+          <h3 className="font-semibold text-chocolate">Stock por producto</h3>
           <div className="space-y-2">
             {(() => {
-              // Group by product
               const grouped = new Map<string, { name: string; items: ProductStock[] }>()
               productStock.forEach((s) => {
                 if (!grouped.has(s.product_id)) {
@@ -324,14 +323,14 @@ export default function DashboardPage() {
                 <div key={productId} className="card py-3">
                   <p className="font-medium text-chocolate mb-2">{group.name}</p>
                   <div className="space-y-1">
-                    {group.items.map((item) => {
+                    {group.items.map((item, idx) => {
                       const hasWhole = item.stock_unidades_enteras !== 0
                       const hasPortions = item.stock_porciones !== 0
                       if (!hasWhole && !hasPortions) return null
                       const sizeLabel = item.size ? ` (${item.size})` : ''
                       return (
-                        <div key={item.variant_id} className="text-sm">
-                          <span className="text-bakery-500">{item.variant_name}{sizeLabel}:</span>{' '}
+                        <div key={idx} className="text-sm">
+                          <span className="text-bakery-500">Stock{sizeLabel}:</span>{' '}
                           {hasWhole && (
                             <span className="text-chocolate font-medium">
                               {item.stock_unidades_enteras} {item.stock_unidades_enteras === 1 ? 'entera' : 'enteras'}

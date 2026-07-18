@@ -131,19 +131,42 @@ left join sold_whole sw on sw.product_id = p.id and sw.variant_id = v.id
 left join sold_portions sp on sp.product_id = p.id
 where p.active = true and v.active = true;
 
--- 9. Agregar unit_size y unit_size_label a purchases
+-- 9. Purchases: hacer total_cost columna normal (no generada)
+-- y limpiar columnas de unit_size que ya no se usan
+do $$
+begin
+  -- Si total_cost es una columna generada, dropearla y recrearla como normal
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'purchases' and column_name = 'total_cost'
+      and is_generated = 'ALWAYS'
+  ) then
+    alter table purchases drop column total_cost;
+    alter table purchases add column total_cost numeric(10,2);
+  end if;
+
+  -- Drop unit_size y unit_size_label si existen
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'purchases' and column_name = 'unit_size'
+  ) then
+    alter table purchases drop column unit_size;
+  end if;
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'purchases' and column_name = 'unit_size_label'
+  ) then
+    alter table purchases drop column unit_size_label;
+  end if;
+end $$;
+
+-- 10. Agregar size a production_batches
 do $$
 begin
   if not exists (
     select 1 from information_schema.columns
-    where table_name = 'purchases' and column_name = 'unit_size'
+    where table_name = 'production_batches' and column_name = 'size'
   ) then
-    alter table purchases add column unit_size numeric(10,2);
-  end if;
-  if not exists (
-    select 1 from information_schema.columns
-    where table_name = 'purchases' and column_name = 'unit_size_label'
-  ) then
-    alter table purchases add column unit_size_label text;
+    alter table production_batches add column size text check (size in ('grande', 'pequena'));
   end if;
 end $$;
