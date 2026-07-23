@@ -157,6 +157,33 @@ left join product_variants v on v.id = s.variant_id
 group by week_start, s.product_id, p.name, s.variant_id, v.name
 order by week_start desc, product_name, variant_name;
 
+create view monthly_sales_summary as
+select
+  date_trunc('month', sale_date)::date as month_start,
+  sum(total_amount) filter (where payment_method = 'yape') as total_yape,
+  sum(total_amount) filter (where payment_method = 'efectivo') as total_efectivo,
+  sum(total_amount) as total_vendido
+from sales
+group by month_start
+order by month_start desc;
+
+create view monthly_expense_summary as
+select
+  date_trunc('month', purchase_date)::date as month_start,
+  sum(total_cost) as total_gastado
+from purchases
+group by month_start
+order by month_start desc;
+
+create view monthly_production_summary as
+select
+  date_trunc('month', production_date)::date as month_start,
+  product_id,
+  sum(quantity_produced) as total_producido
+from production_batches
+group by month_start, product_id
+order by month_start desc;
+
 create view product_stock as
 with produced_whole as (
   select product_id, size, sum(quantity_produced) as unidades_producidas
